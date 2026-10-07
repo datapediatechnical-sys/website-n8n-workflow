@@ -1,0 +1,869 @@
+{
+  "name": "website + slack automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        224
+      ],
+      "id": "5410ea03-cd5a-4ea9-859c-6e737efddb48",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "trashed = false",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1X83MJ_LO-5O47SQ0nWbr7KppZOs10_Nh",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -736,
+        224
+      ],
+      "id": "735f770e-15b2-49d5-b8fd-069770a251a8",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -512,
+        224
+      ],
+      "id": "5bd8cba6-620b-4a7c-b289-6fc834b9bfb1",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -288,
+        432
+      ],
+      "id": "a2eb6e59-7e38-4bd9-824f-ca0508b3e473",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2cfe4a80-039a-4b17-9db2-dfdafcee9b17",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10efccd7-a8be-457e-a276-6f0c4700df45",
+              "name": "fileName",
+              "value": "={{ $('Search files and folders').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "72871b3a-6f11-4eed-a8fe-66c094295a95",
+              "name": "fileId",
+              "value": "={{ $('Search files and folders').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "0c06044b-fdce-4ab8-bee9-ce92e3f07a67",
+              "name": "webViewLink",
+              "value": "={{ 'https://drive.google.com/file/d/' + $('Search files and folders').item.json.id + '/view' }}",
+              "type": "string"
+            },
+            {
+              "id": "8661798e-3f90-4a30-8f0d-8826366a12df",
+              "name": "type",
+              "value": "={{ $('Search files and folders').item.json.name.toLowerCase().startsWith('casestudy_') ? 'case-study' : $('Search files and folders').item.json.name.toLowerCase().startsWith('resource_') ? 'gtm-resource' : 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "5f704436-70e5-4cde-82bb-996d6cf1f580",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        160,
+        432
+      ],
+      "id": "a4b3ff95-5a9b-40b2-8e7d-959f30eebad2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"id\": \"{{ $json.fileId }}\",\n  \"resourceKey\": \"{{ $('Search files and folders').item.json.name.split('.').slice(0, -1).join('.').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }}\",\n  \"type\": \"{{ $json.type }}\",\n  \"title\": \"{{ $json.title }}\",\n  \"description\": \"{{ $json.description }}\",\n  \"date\": \"{{ $now.toISO() }}\",\n  \"content\": \"{{ $json.content }}\",\n  \"downloadUrl\": \"{{ $json.webViewLink }}\",\n  \"automated\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        640,
+        416
+      ],
+      "id": "4b785b4d-fc43-4c1f-8d43-88163ae29a75",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "nikhil-repo09",
+          "mode": "list",
+          "cachedResultName": "nikhil-repo09",
+          "cachedResultUrl": "https://github.com/nikhil-repo09"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "leadnius-automation-",
+          "mode": "list",
+          "cachedResultName": "leadnius-automation-",
+          "cachedResultUrl": "https://github.com/nikhil-repo09/leadnius-automation-"
+        },
+        "filePath": "=data/automation-resources.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "main"
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        688
+      ],
+      "id": "247b4ddd-366b-4239-8e9b-c9ef7326fc37",
+      "name": "Get a file",
+      "webhookId": "9887ba23-202a-4f60-b4e8-e100b280c0d4",
+      "credentials": {
+        "githubApi": {
+          "id": "TvnDOjHYtYOP72Ge",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "nikhil-repo09",
+          "mode": "list",
+          "cachedResultName": "nikhil-repo09",
+          "cachedResultUrl": "https://github.com/nikhil-repo09"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "leadnius-automation-",
+          "mode": "list",
+          "cachedResultName": "leadnius-automation-",
+          "cachedResultUrl": "https://github.com/nikhil-repo09/leadnius-automation-"
+        },
+        "filePath": "data/automation-resources.json",
+        "fileContent": "={{ $json.content }}",
+        "commitMessage": "Update automated resources",
+        "additionalParameters": {
+          "branch": {
+            "branch": "main"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        976
+      ],
+      "id": "9358734e-d720-4f48-827f-a2582eba0045",
+      "name": "Edit a file",
+      "webhookId": "76e0db0f-c2ef-487b-82af-a5293c5fbd18",
+      "credentials": {
+        "githubApi": {
+          "id": "TvnDOjHYtYOP72Ge",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Search files and folders').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "10SrXi6Q_vNyV8zfqBkDKojs6Jts64kLU",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        752,
+        1008
+      ],
+      "id": "82f46fc4-cb69-4727-9098-f37cbbc7ffc4",
+      "name": "Move file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Search files and folders').item.json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        976,
+        416
+      ],
+      "id": "d254b020-9cd8-4112-99b5-0f2f2add259e",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "01637703-d30c-4289-a9fa-6dbc2e5c323e",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "unknown",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        256,
+        160
+      ],
+      "id": "87217720-0b87-4411-8086-1e7d92e58ad6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data.fileName.split('.').pop().toLowerCase() }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c2441125-1eb1-4f32-94b9-29846df46d29"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "eb2cd8d1-3e69-4978-8979-3e7666115628",
+                    "leftValue": "={{ $binary.data.fileName.split('.').pop().toLowerCase() }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        208
+      ],
+      "id": "2dfff569-8613-4e88-90b3-4d823e3a681f",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        432
+      ],
+      "id": "df06e0de-94a6-42b2-bf01-73386563e2c7",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = String($json.text || '').trim();\n\nconst fileName = String($json.fileName || '').trim();\n\nfunction clean(value) {\n  return String(value || '')\n    .replace(/\\r/g, '')\n    .replace(/[ \\t]+/g, ' ')\n    .trim();\n}\n\nconst lines = text\n  .split('\\n')\n  .map(clean)\n  .filter(Boolean);\n\n// ---------- TITLE ----------\nlet title = '';\n\nconst titleMatch = text.match(\n  /^(?:Case Study|Resource)\\s*:\\s*(.+?)(?:\\n|$)/i\n);\n\nif (titleMatch) {\n  title = clean(titleMatch[1]);\n}\n\n// Keep full title from the next line when PDF wraps it.\nif (title && lines.length > 1) {\n  const firstLine = lines[0];\n\n  if (\n    /^(?:Case Study|Resource)\\s*:/i.test(firstLine) &&\n    !firstLine.toLowerCase().includes(lines[1].toLowerCase())\n  ) {\n    title = clean(`${title} ${lines[1]}`);\n  }\n}\n\nif (!title) {\n  title = clean(\n    fileName\n      .replace(/\\.[^/.]+$/, '')\n      .replace(/^(casestudy_|resource_)/i, '')\n      .replace(/[_-]+/g, ' ')\n  );\n}\n\n// ---------- DESCRIPTION ----------\nlet description = '';\n\nconst descStart = lines.findIndex(line =>\n  /^(?:This is|A |An |The )/i.test(line)\n);\n\nif (descStart !== -1) {\n  const descriptionLines = [];\n\n  for (let i = descStart; i < lines.length; i++) {\n    const line = lines[i];\n\n    if (\n      /^(?:The challenge|The operating requirements|The Leadnius workflow|What this workflow changes|Where Leadnius fits|Takeaway)$/i.test(line)\n    ) {\n      break;\n    }\n\n    descriptionLines.push(line);\n  }\n\n  description = clean(descriptionLines.join(' '));\n}\n\n// Fallback: first meaningful paragraph after title/subtitle.\nif (!description) {\n  const intro = lines.slice(1, 6)\n    .filter(line =>\n      line.length > 40 &&\n      !/^Leadnius\\s*[—-]/i.test(line)\n    );\n\n  description = clean(intro.join(' '));\n}\n\nif (description.length > 220) {\n  description = description.slice(0, 217).replace(/\\s+\\S*$/, '') + '...';\n}\n\n// ---------- KEY POINTS ----------\nconst points = [];\n\n// Normalize PDF bullet formatting.\n// Example:\n// •\n// Identify accounts...\n//\n// becomes:\n// Identify accounts...\nconst normalizedText = text\n  .replace(/[•▪◦]\\s*\\n\\s*/g, '• ')\n  .replace(/\\n\\s*•\\s*/g, '\\n• ');\n\nconst normalizedLines = normalizedText\n  .split('\\n')\n  .map(clean)\n  .filter(Boolean);\n\n// 1. Extract real bullet points.\nfor (const line of normalizedLines) {\n  const match = line.match(/^[•▪◦*-]\\s+(.+)$/);\n\n  if (match) {\n    const point = clean(match[1]);\n\n    if (\n      point.length >= 20 &&\n      point.length <= 220 &&\n      !points.some(p => p.toLowerCase() === point.toLowerCase())\n    ) {\n      points.push(point);\n    }\n  }\n\n  if (points.length >= 5) break;\n}\n\n// 2. If there are not enough bullets, use numbered/stage sections.\nif (points.length < 3) {\n  const stages = normalizedLines.filter(line =>\n    /^Stage\\s+\\d+/i.test(line)\n  );\n\n  for (const stage of stages) {\n    if (!points.includes(stage)) {\n      points.push(stage);\n    }\n\n    if (points.length >= 5) break;\n  }\n}\n\n// Maximum 5.\nconst keyPoints = points.slice(0, 5);\n\n// ---------- WEBSITE CONTENT ----------\nconst content = `\n<h2>Key Highlights</h2>\n<ul>\n${keyPoints.map(point => `<li>${point}</li>`).join('\\n')}\n</ul>\n`.trim();\n\nreturn {\n  json: {\n    ...$json,\n    title,\n    description,\n    keyPoints,\n    content\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        64
+      ],
+      "id": "e1b8ebae-3853-45d1-8eed-a3e2a2c522be",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resource = $('Edit Fields1').first().json;\n\n// Replace this with your actual website domain\nconst websiteBaseUrl = 'http://localhost:3000';\n\nconst websiteUrl = `${websiteBaseUrl}/resources/automation/${resource.id}`;\n\nconst slackMessage = `🚀 New resource published!\n\n${resource.title}\n\n${resource.description}\n\n🌐 Website: ${websiteUrl}\n📄 PDF: ${resource.downloadUrl}`;\n\nreturn [\n  {\n    json: {\n      ...resource,\n      websiteUrl,\n      slackMessage\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        976
+      ],
+      "id": "a2d70a64-a985-4032-87ef-be2663582669",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BE5BMLEEN",
+          "mode": "id"
+        },
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        240,
+        976
+      ],
+      "id": "d5acbd89-60ee-4752-8440-0accdff3a276",
+      "name": "Send a message",
+      "webhookId": "9aa90a98-f708-4546-a85b-fbc01234d002",
+      "credentials": {
+        "slackApi": {
+          "id": "YnMt5WosfHhEZjV8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1HS8ziDAkaQgxcVlv_Kck2wp78YCvFwZOGThQ1u34nnI",
+          "mode": "list",
+          "cachedResultName": "Content Distribution Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HS8ziDAkaQgxcVlv_Kck2wp78YCvFwZOGThQ1u34nnI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 773190555,
+          "mode": "list",
+          "cachedResultName": "Resources",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HS8ziDAkaQgxcVlv_Kck2wp78YCvFwZOGThQ1u34nnI/edit#gid=773190555"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toISO() }}",
+            "File Name": "={{ $('Search files and folders').item.json.name }}",
+            "Category": "={{ $('Edit Fields1').item.json.type }}",
+            "Website URL": "={{ 'http://localhost:3000/resources/automation/' + $('Edit Fields1').item.json.id }}",
+            "PDF URL": "={{ $('Edit Fields1').item.json.downloadUrl }}",
+            "Slack Status": "Published"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website URL",
+              "displayName": "Website URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PDF URL",
+              "displayName": "PDF URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Slack Status",
+              "displayName": "Slack Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -736,
+        528
+      ],
+      "id": "9e9e76b1-9b71-4ef8-826c-89e2ef280818",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.content;\n\nconst decoded = Buffer.from(content, 'base64').toString('utf8');\n\nconst resources = JSON.parse(decoded);\n\nreturn [\n  {\n    json: {\n      resources,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        688
+      ],
+      "id": "a7387251-fafe-421e-9812-bf969a83c61b",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resources = $input.first().json.resources;\nconst newResource = $('Edit Fields1').first().json;\n\n// Remove existing resource with the same resourceKey\nconst filteredResources = resources.filter(\n  resource => resource.resourceKey !== newResource.resourceKey\n);\n\n// Add the latest version at the top\nreturn [\n  {\n    json: {\n      resources: [newResource, ...filteredResources],\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        656
+      ],
+      "id": "7e861c8c-14ff-4344-b1c8-53dab50e6678",
+      "name": "Add Resource"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resources = $input.first().json.resources;\n\nreturn [\n  {\n    json: {\n      content: JSON.stringify(resources, null, 2),\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        656
+      ],
+      "id": "bc6b98c5-0a96-4b5e-ba11-90caa19e4670",
+      "name": "JSON Stringify"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit a file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move file": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Move file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Add Resource",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Resource": {
+      "main": [
+        [
+          {
+            "node": "JSON Stringify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Stringify": {
+      "main": [
+        [
+          {
+            "node": "Edit a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a98b7ef3-e52c-45dd-8f99-edd17413327c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6578a0dec37172974f804fafdefa23376c2313249fe2828ce9dfb0c059a88b70"
+  },
+  "nodeGroups": [],
+  "id": "CFbORK7VO5nI7WPM",
+  "tags": []
+}

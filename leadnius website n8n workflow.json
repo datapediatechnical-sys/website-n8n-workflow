@@ -1,0 +1,797 @@
+{
+  "name": "website only automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ef162f3e-679d-4744-b8d4-bfaf8b204fc0",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "trashed = false",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1zZyKwNzSDkx-TOrhk6iwLTxUDPrbrFhQ",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3a263cf6-dc8b-4e2a-a841-eba93291dfb4",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "78e919a4-8cee-4eba-a43c-9814640da6a3",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        672,
+        160
+      ],
+      "id": "2cf46f34-ac2a-4063-8f1b-6bb3c1343353",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        -224
+      ],
+      "id": "976a1319-952e-4c1a-adf7-102c82050333",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10efccd7-a8be-457e-a276-6f0c4700df45",
+              "name": "fileName",
+              "value": "={{ $('Search files and folders').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "72871b3a-6f11-4eed-a8fe-66c094295a95",
+              "name": "fileId",
+              "value": "={{ $('Search files and folders').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "0c06044b-fdce-4ab8-bee9-ce92e3f07a67",
+              "name": "webViewLink",
+              "value": "={{ 'https://drive.google.com/file/d/' + $('Search files and folders').item.json.id + '/view' }}",
+              "type": "string"
+            },
+            {
+              "id": "8661798e-3f90-4a30-8f0d-8826366a12df",
+              "name": "type",
+              "value": "={{ $('Search files and folders').item.json.name.toLowerCase().startsWith('casestudy_') ? 'case-study' : $('Search files and folders').item.json.name.toLowerCase().startsWith('resource_') ? 'gtm-resource' : 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "5f704436-70e5-4cde-82bb-996d6cf1f580",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1120,
+        208
+      ],
+      "id": "89e9849e-0d81-492f-b25b-379a783b6da4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"id\": \"{{ $json.fileId }}\",\n  \"resourceKey\": \"{{ $('Search files and folders').item.json.name.split('.').slice(0, -1).join('.').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }}\",\n  \"type\": \"{{ $json.type }}\",\n  \"title\": \"{{ $json.title }}\",\n  \"description\": \"{{ $json.description }}\",\n  \"date\": \"{{ $now.toISO() }}\",\n  \"content\": \"{{ $json.content }}\",\n  \"downloadUrl\": \"{{ $json.webViewLink }}\",\n  \"automated\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1600,
+        192
+      ],
+      "id": "3fb6b13f-07ba-4321-9662-2e8beac72ba6",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "nikhil-repo09",
+          "mode": "list",
+          "cachedResultName": "nikhil-repo09",
+          "cachedResultUrl": "https://github.com/nikhil-repo09"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "leadnius-automation-",
+          "mode": "list",
+          "cachedResultName": "leadnius-automation-",
+          "cachedResultUrl": "https://github.com/nikhil-repo09/leadnius-automation-"
+        },
+        "filePath": "=data/automation-resources.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "main"
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        464
+      ],
+      "id": "273f7670-c8f5-4cd4-a62e-e9b4aae4bccc",
+      "name": "Get a file",
+      "webhookId": "9887ba23-202a-4f60-b4e8-e100b280c0d4",
+      "credentials": {
+        "githubApi": {
+          "id": "TvnDOjHYtYOP72Ge",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.content;\n\nconst decoded = Buffer.from(content, 'base64').toString('utf8');\n\nconst resources = JSON.parse(decoded);\n\nreturn [\n  {\n    json: {\n      resources,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        464
+      ],
+      "id": "88beb9c4-7dd9-4ae8-995f-421ef77ca95a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resources = $input.first().json.resources;\nconst newResource = $('Edit Fields1').first().json;\n\nconst filteredResources = resources.filter(\n  resource => resource.resourceKey !== newResource.resourceKey\n);\n\nreturn [\n  {\n    json: {\n      resources: [newResource, ...filteredResources],\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        432
+      ],
+      "id": "9711c06f-78be-4e59-b679-e6e715e8ee4d",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resources = $input.first().json.resources;\n\nreturn [\n  {\n    json: {\n      content: JSON.stringify(resources, null, 2),\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        432
+      ],
+      "id": "e584995b-8e52-4cb8-b92b-978682f8832e",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "nikhil-repo09",
+          "mode": "list",
+          "cachedResultName": "nikhil-repo09",
+          "cachedResultUrl": "https://github.com/nikhil-repo09"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "leadnius-automation-",
+          "mode": "list",
+          "cachedResultName": "leadnius-automation-",
+          "cachedResultUrl": "https://github.com/nikhil-repo09/leadnius-automation-"
+        },
+        "filePath": "data/automation-resources.json",
+        "fileContent": "={{ $json.content }}",
+        "commitMessage": "Update automated resources",
+        "additionalParameters": {
+          "branch": {
+            "branch": "main"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        752
+      ],
+      "id": "4011a092-962b-49c3-a6af-e486a610d5e5",
+      "name": "Edit a file",
+      "webhookId": "76e0db0f-c2ef-487b-82af-a5293c5fbd18",
+      "credentials": {
+        "githubApi": {
+          "id": "TvnDOjHYtYOP72Ge",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Search files and folders').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "10SrXi6Q_vNyV8zfqBkDKojs6Jts64kLU",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        944,
+        752
+      ],
+      "id": "f09dad8f-9704-4967-a380-2fa0dc9fab05",
+      "name": "Move file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1J29UW1qzzXNPxg_-VxBzOjCCEUoBa7Rfm0St9RG7PTc",
+          "mode": "list",
+          "cachedResultName": "Content Automation Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1J29UW1qzzXNPxg_-VxBzOjCCEUoBa7Rfm0St9RG7PTc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1642550224,
+          "mode": "list",
+          "cachedResultName": "Resources",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1J29UW1qzzXNPxg_-VxBzOjCCEUoBa7Rfm0St9RG7PTc/edit#gid=1642550224"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toISO() }}",
+            "File Name": "={{ $('Search files and folders').item.json.name }}",
+            "Category": "={{ $('Edit Fields1').item.json.type }}",
+            "Status": "Published",
+            "Post URL": "={{ 'http://localhost:3000/resources/automation/' + $('Edit Fields1').item.json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Post URL",
+              "displayName": "Post URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        256
+      ],
+      "id": "0cf84ab2-ade2-425b-8e5c-921f36f1a84b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Search files and folders').item.json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1936,
+        192
+      ],
+      "id": "0e39d824-f2b5-48d4-acd1-e9099b69cb0f",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IQFemM2dIPhuJFS9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "01637703-d30c-4289-a9fa-6dbc2e5c323e",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "unknown",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1216,
+        -64
+      ],
+      "id": "90abcec8-a101-4ef2-9af4-6de21767bbf7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data.fileName.split('.').pop().toLowerCase() }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c2441125-1eb1-4f32-94b9-29846df46d29"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "eb2cd8d1-3e69-4978-8979-3e7666115628",
+                    "leftValue": "={{ $binary.data.fileName.split('.').pop().toLowerCase() }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        -16
+      ],
+      "id": "9d45a659-b1cb-4251-b143-ad8f8b2b7345",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        208
+      ],
+      "id": "161c7c49-875b-49b8-8efe-7219e7d599a4",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = String($json.text || '').trim();\n\nconst fileName = String($json.fileName || '').trim();\n\nfunction clean(value) {\n  return String(value || '')\n    .replace(/\\r/g, '')\n    .replace(/[ \\t]+/g, ' ')\n    .trim();\n}\n\nconst lines = text\n  .split('\\n')\n  .map(clean)\n  .filter(Boolean);\n\n// ---------- TITLE ----------\nlet title = '';\n\nconst titleMatch = text.match(\n  /^(?:Case Study|Resource)\\s*:\\s*(.+?)(?:\\n|$)/i\n);\n\nif (titleMatch) {\n  title = clean(titleMatch[1]);\n}\n\n// Keep full title from the next line when PDF wraps it.\nif (title && lines.length > 1) {\n  const firstLine = lines[0];\n\n  if (\n    /^(?:Case Study|Resource)\\s*:/i.test(firstLine) &&\n    !firstLine.toLowerCase().includes(lines[1].toLowerCase())\n  ) {\n    title = clean(`${title} ${lines[1]}`);\n  }\n}\n\nif (!title) {\n  title = clean(\n    fileName\n      .replace(/\\.[^/.]+$/, '')\n      .replace(/^(casestudy_|resource_)/i, '')\n      .replace(/[_-]+/g, ' ')\n  );\n}\n\n// ---------- DESCRIPTION ----------\nlet description = '';\n\nconst descStart = lines.findIndex(line =>\n  /^(?:This is|A |An |The )/i.test(line)\n);\n\nif (descStart !== -1) {\n  const descriptionLines = [];\n\n  for (let i = descStart; i < lines.length; i++) {\n    const line = lines[i];\n\n    if (\n      /^(?:The challenge|The operating requirements|The Leadnius workflow|What this workflow changes|Where Leadnius fits|Takeaway)$/i.test(line)\n    ) {\n      break;\n    }\n\n    descriptionLines.push(line);\n  }\n\n  description = clean(descriptionLines.join(' '));\n}\n\n// Fallback: first meaningful paragraph after title/subtitle.\nif (!description) {\n  const intro = lines.slice(1, 6)\n    .filter(line =>\n      line.length > 40 &&\n      !/^Leadnius\\s*[—-]/i.test(line)\n    );\n\n  description = clean(intro.join(' '));\n}\n\nif (description.length > 220) {\n  description = description.slice(0, 217).replace(/\\s+\\S*$/, '') + '...';\n}\n\n// ---------- KEY POINTS ----------\nconst points = [];\n\n// Normalize PDF bullet formatting.\n// Example:\n// •\n// Identify accounts...\n//\n// becomes:\n// Identify accounts...\nconst normalizedText = text\n  .replace(/[•▪◦]\\s*\\n\\s*/g, '• ')\n  .replace(/\\n\\s*•\\s*/g, '\\n• ');\n\nconst normalizedLines = normalizedText\n  .split('\\n')\n  .map(clean)\n  .filter(Boolean);\n\n// 1. Extract real bullet points.\nfor (const line of normalizedLines) {\n  const match = line.match(/^[•▪◦*-]\\s+(.+)$/);\n\n  if (match) {\n    const point = clean(match[1]);\n\n    if (\n      point.length >= 20 &&\n      point.length <= 220 &&\n      !points.some(p => p.toLowerCase() === point.toLowerCase())\n    ) {\n      points.push(point);\n    }\n  }\n\n  if (points.length >= 5) break;\n}\n\n// 2. If there are not enough bullets, use numbered/stage sections.\nif (points.length < 3) {\n  const stages = normalizedLines.filter(line =>\n    /^Stage\\s+\\d+/i.test(line)\n  );\n\n  for (const stage of stages) {\n    if (!points.includes(stage)) {\n      points.push(stage);\n    }\n\n    if (points.length >= 5) break;\n  }\n}\n\n// Maximum 5.\nconst keyPoints = points.slice(0, 5);\n\n// ---------- WEBSITE CONTENT ----------\nconst content = `\n<h2>Key Highlights</h2>\n<ul>\n${keyPoints.map(point => `<li>${point}</li>`).join('\\n')}\n</ul>\n`.trim();\n\nreturn {\n  json: {\n    ...$json,\n    title,\n    description,\n    keyPoints,\n    content\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -160
+      ],
+      "id": "5910370c-a163-4690-96b9-f19b323d1a49",
+      "name": "Code in JavaScript3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Edit a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit a file": {
+      "main": [
+        [
+          {
+            "node": "Move file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move file": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5142318b-6bc6-4b5b-991a-049faa2f2d4d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6578a0dec37172974f804fafdefa23376c2313249fe2828ce9dfb0c059a88b70"
+  },
+  "nodeGroups": [],
+  "id": "g2vt0WLHCFYUgHXV",
+  "tags": []
+}

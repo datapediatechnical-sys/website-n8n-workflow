@@ -1,0 +1,3140 @@
+{
+  "name": "event gudpalswebsite 3A",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -352,
+        80
+      ],
+      "id": "196b3159-91d5-46f3-9ad4-8c901355e9ed",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "formTitle": "Find Senior Events",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "City",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -352,
+        336
+      ],
+      "id": "b28f2eda-a967-438d-8dc4-398e23a82a34",
+      "name": "On form submission",
+      "webhookId": "78e068f9-be1d-41d6-b588-37b05e1997de"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7fc87f6d-6f19-45a2-9db9-e58c18e91df9",
+              "name": "city",
+              "value": "={{ $json.City || 'Delhi NCR' }}",
+              "type": "string"
+            },
+            {
+              "id": "1d56c369-d0c1-42c8-8d6d-ec4dd5e1eb1b",
+              "name": "searchTerms",
+              "value": "={{ [\n  'senior citizen events',\n  'senior citizens meetup',\n  'elderly events',\n  'retirement community events',\n  'senior citizen association',\n  'senior citizen health camp',\n  'yoga for seniors',\n  'senior citizen welfare events',\n  'RWA senior citizen meet',\n  'activities for senior citizens'\n] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -128,
+        208
+      ],
+      "id": "d4736265-0340-4c6d-bf14-ed29798413b1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "searchTerms",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        48,
+        208
+      ],
+      "id": "ef185952-e956-4391-91a4-22d558e70925",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "EDYwMUa5dAChOzDKG",
+          "mode": "list",
+          "cachedResultName": "Eventbrite Event Scraper (mrdoe/eventbrite-event-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/EDYwMUa5dAChOzDKG/input"
+        },
+        "customBody": "={\n  \"startUrls\": [\n    {\n      \"url\": \"https://www.eventbrite.com/d/india--delhi/events/\"\n    }\n  ],\n  \"maxItems\": 1,\n  \"useCache\": false,\n  \"proxyConfiguration\": {\n    \"useApifyProxy\": true,\n    \"apifyProxyGroups\": [\"RESIDENTIAL\"]\n  }\n}",
+        "timeout": {},
+        "maxTotalChargeUsd": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 2,
+      "position": [
+        208,
+        208
+      ],
+      "id": "5936b375-b0c0-46cc-9e4d-9c944f78a4f9",
+      "name": "Run an Actor and get dataset",
+      "credentials": {
+        "apifyApi": {
+          "id": "JdRUWmwYtyZw4X76",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst seen = new Set();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n\n  const event = {\n    title: data.name || '',\n    date: data.startDate || '',\n    time: data.startTime\n      ? `${data.startTime}${data.endTime ? ` - ${data.endTime}` : ''}`\n      : '',\n    venue: data.venue || '',\n    city: data.locality || '',\n    organiser: data.organizerName || '',\n    description: data.description || data.summary || '',\n    source_url: data.url || data.sourceUrl || '',\n    image_url: data.image || ''\n  };\n\n  // Unique event key\n  const eventKey = `${event.title}|${event.date}|${event.venue}|${event.source_url}`;\n\n  if (!seen.has(eventKey)) {\n    seen.add(eventKey);\n    results.push({ json: event });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        208
+      ],
+      "id": "4e3ea4d5-7eeb-49d1-a716-65ca65230f2c",
+      "name": "Normalize Events"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e8406d8b-2e64-4a60-bb18-d722a3ec938e",
+              "leftValue": "={{\n  (() => {\n    const d = new Date($json.date);\n    const today = new Date();\n    today.setHours(0,0,0,0);\n    const maxDate = new Date(today);\n    maxDate.setDate(today.getDate() + 30);\n    return !isNaN(d.getTime()) && d >= today && d <= maxDate;\n  })()\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "94474633-8d6a-495f-8b13-12b53f7d0223",
+              "leftValue": "={{ \n  (() => {\n    const eventCity = ($json.city || '').toLowerCase();\n\n    return [\n      'delhi',\n      'noida',\n      'gurugram',\n      'gurgaon',\n      'ghaziabad',\n      'faridabad'\n    ].some(city => eventCity.includes(city));\n  })()\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        736,
+        192
+      ],
+      "id": "460cac90-f930-407c-aefc-4598d3d91c3f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{\n`\nYou are classifying events for the Gudpals senior-citizen community website.\n\nAnalyze the event and determine:\n1. Whether it is clearly relevant to senior citizens or their community.\n2. Which Gudpals website section it belongs to.\n\nEvent:\nTitle: ${$json.title}\nDate: ${$json.date}\nTime: ${$json.time}\nVenue: ${$json.venue}\nCity: ${$json.city}\nOrganiser: ${$json.organiser}\nDescription: ${$json.description}\n\nChoose exactly ONE category from these six options:\n\n- Meetups & Socials\n  Use for meetups, social gatherings, community gatherings, networking, clubs, and senior citizen associations.\n\n- Events & Shows\n  Use for concerts, music shows, theatre, comedy shows, cultural events, performances, and entertainment events.\n\n- Tours & Escapes\n  Use for tours, trips, travel groups, retreats, sightseeing, heritage tours, nature trips, and getaways.\n\n- Fun Activities\n  Use for games, karaoke, hobbies, recreational activities, workshops, dance, arts, crafts, and other fun activities.\n\n- Health & Wellness\n  Use for yoga, meditation, fitness, health camps, medical awareness, wellness programs, therapy, and senior health activities.\n\n- Stores\n  Use for products, shops, shopping, senior-friendly products, services, and businesses intended for the senior community.\n\nRules:\n- is_senior_event must be true or false.\n- Only mark true when the event is clearly relevant to senior citizens or their community.\n- Do not guess that an event is for seniors just because it is located near seniors or has general relevance.\n- category must be exactly one of the six categories listed above.\n- Do not create a new category.\n- summary must be maximum 40 words.\n- Return ONLY valid JSON.\n\nReturn exactly this format:\n\n{\n  \"is_senior_event\": true,\n  \"category\": \"Health & Wellness\",\n  \"reason\": \"Short reason\",\n  \"summary\": \"Maximum 40-word summary\"\n}\n`\n}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        976,
+        176
+      ],
+      "id": "4e896f7c-1f18-4099-b113-fe26652b8966",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        976,
+        336
+      ],
+      "id": "3d38b251-b473-4641-b759-0c20d7725e37",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "K5aBTM9jfQ2qjqh9",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6db05226-c645-465a-a8af-f651f30a602c",
+              "leftValue": "={{ true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1280,
+        176
+      ],
+      "id": "0c2408e5-835e-45d3-8226-f17c1ed94a19",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "title",
+              "lookupValue": "={{ $('Normalize Events').item.json.title }}"
+            },
+            {
+              "lookupColumn": "date",
+              "lookupValue": "={{ $('Normalize Events').item.json.date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1488,
+        160
+      ],
+      "id": "1106ccc6-d005-4030-87a8-8eaac54c04c8",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4dff2468-b5e3-4525-b0d9-75b784d22491",
+              "leftValue": "={{ !!$json.title }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1632,
+        160
+      ],
+      "id": "49b20340-5924-473f-868c-1e0b4fa18341",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ Date.now() + '-' + $itemIndex }}",
+            "title": "={{ $('Normalize Events').first().json.title }}",
+            "date": "={{ $('Normalize Events').first().json.date }}",
+            "time": "={{ $('Normalize Events').first().json.time }}",
+            "venue": "={{ $('Normalize Events').first().json.venue }}",
+            "city": "={{ $('Normalize Events').first().json.city }}",
+            "organiser": "={{ $('Normalize Events').first().json.organiser }}",
+            "description": "={{ $('Normalize Events').first().json.description }}",
+            "source_url": "={{ $('Normalize Events').first().json.source_url }}",
+            "image_url": "={{ $('Normalize Events').first().json.source_url }}",
+            "status": "Pending event approval",
+            "created_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "organiser",
+              "displayName": "organiser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "instagram_permalink",
+              "displayName": "instagram_permalink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1872,
+        176
+      ],
+      "id": "fd065bfd-7191-4eed-9a67-774449952758",
+      "name": "Append row in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $json;\n\nreturn {\n  json: {\n    event_id: event.event_id,\n    title: event.title,\n    date: event.date,\n    time: event.time,\n    venue: event.venue,\n    city: event.city,\n    organiser: event.organiser,\n    description: event.description,\n    source_url: event.source_url,\n    image_url: event.image_url,\n    status: 'Pending event approval'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        48
+      ],
+      "id": "06c30d0a-a983-4f79-b2e3-a97d6a7d0964",
+      "name": "Prepare Event Approval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "93659927-0896-4eff-9b84-5f9e4f38ecdd",
+              "leftValue": "={{ !!$json.venue }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        512,
+        208
+      ],
+      "id": "eb0b2963-f255-4456-9cab-77627eb6a577",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#gudpals",
+          "mode": "name"
+        },
+        "message": "={{\n`🔔 New Senior Event Found\n\n📌 ${$json.title}\n📅 ${$json.date}\n⏰ ${$json.time}\n📍 ${$json.venue}, ${$json.city}\n👤 ${$json.organiser}\n\n📝 ${$json.description}\n\n🏷️ Category: ${JSON.parse($('Basic LLM Chain').first().json.text).category}\n\n🔗 Source: ${$json.source_url}\n\nPlease review this event and choose an option below.`\n}}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Accept",
+            "disapproveLabel": "Rejected"
+          }
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2208,
+        176
+      ],
+      "id": "0d270543-f6a0-426d-803e-2ae072145a1d",
+      "name": "Send message and wait for response",
+      "webhookId": "b64d4b40-3472-4746-92be-683250cf1ba5",
+      "credentials": {
+        "slackApi": {
+          "id": "YnMt5WosfHhEZjV8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1c56bc30-b8a4-41f1-8de7-4912463a2cb5",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2384,
+        176
+      ],
+      "id": "572768c4-0f61-4db1-aef2-f8f18ab68c8f",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $('Append row in sheet').first().json.event_id }}",
+            "status": "Event approved"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organiser",
+              "displayName": "organiser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_permalink",
+              "displayName": "instagram_permalink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2560,
+        160
+      ],
+      "id": "85b5852a-108d-484d-90a0-72b567de8787",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $('Append row in sheet').first().json.event_id }}",
+            "status": "Event Rejected"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organiser",
+              "displayName": "organiser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_permalink",
+              "displayName": "instagram_permalink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2560,
+        368
+      ],
+      "id": "7c69f50a-728c-42b0-81ce-004d85142665",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d765c1e5-bcf0-4762-a058-4cf8d96a0f24",
+              "name": "event_id",
+              "value": "={{ $('Append row in sheet').first().json.event_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1cbf0e7a-d8b7-46bd-b982-199004d2d142",
+              "name": "title",
+              "value": "={{ $('Normalize Events').first().json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "6d539449-69f1-45d7-83b4-2ae53a6ecd06",
+              "name": "date",
+              "value": "={{ $('Normalize Events').first().json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "0e06b8e1-9beb-44da-81ec-960e3e156908",
+              "name": "time",
+              "value": "={{ $('Normalize Events').first().json.time }}",
+              "type": "string"
+            },
+            {
+              "id": "b64ea197-61e8-4811-b22e-8ccc5fa7a1aa",
+              "name": "venue",
+              "value": "={{ $('Normalize Events').first().json.venue }}",
+              "type": "string"
+            },
+            {
+              "id": "3f3ebc84-aacd-4195-9e5c-bed82226bb4b",
+              "name": "city",
+              "value": "={{ $('Normalize Events').first().json.city }}",
+              "type": "string"
+            },
+            {
+              "id": "30eed27f-e605-4f81-bc5d-a65ef2a04690",
+              "name": "organiser",
+              "value": "={{ $('Normalize Events').first().json.organiser }}",
+              "type": "string"
+            },
+            {
+              "id": "011328dc-3f63-4e1d-b79b-4ae84c12fd50",
+              "name": "description",
+              "value": "={{ $('Normalize Events').first().json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "b3d125e2-6278-4d40-bada-4fb0d4a39f72",
+              "name": "source_url",
+              "value": "={{ $('Normalize Events').first().json.source_url }}",
+              "type": "string"
+            },
+            {
+              "id": "236199d5-186d-4340-9210-680246d0554a",
+              "name": "image_url",
+              "value": "={{ $('Normalize Events').first().json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "64bfac2b-46ee-48c2-8cb4-61d15c6e9710",
+              "name": "=category",
+              "value": "={{ JSON.parse($('Basic LLM Chain').first().json.text).category }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2736,
+        160
+      ],
+      "id": "52d7e191-8766-4f0a-9b08-782d736c5380",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        320
+      ],
+      "id": "8e0b9607-fd91-459f-9d08-97c56a6cf21c",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "K5aBTM9jfQ2qjqh9",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{\n`\nYou are creating content for Gudpals, a senior-citizen community website.\n\nUse ONLY the event information provided below. Do not change or invent the date, time, venue, city, organizer, or source URL.\n\nEVENT:\nTitle: ${$json.title}\nDate: ${$json.date}\nTime: ${$json.time}\nVenue: ${$json.venue}\nCity: ${$json.city}\nOrganizer: ${$json.organiser}\nDescription: ${$json.description}\nCategory: ${$json.category}\nSource URL: ${$json.source_url}\n\nCreate:\n\n1. Instagram caption\n2. Website headline\n3. Website description (80-120 words)\n4. 5-8 relevant hashtags\n5. Short creative text for the event image\n6. Interest hook — a short, engaging curiosity line that makes users interested in the event and encourages them to explore it. Keep it natural and relevant to the actual event. Do not invent facts, benefits, offers, speakers, activities, or promises that are not supported by the event information.\n\nThe interest hook should be a short pickup/curiosity line, ideally 1 sentence and no more than 20 words.\n\nDo not invent any information.\n\nReturn ONLY valid JSON:\n\n{\n  \"instagram_caption\": \"...\",\n  \"website_headline\": \"...\",\n  \"website_description\": \"...\",\n  \"hashtags\": [\"#...\", \"#...\"],\n  \"creative_text\": \"...\",\n  \"interest_hook\": \"...\"\n}\n`\n}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2896,
+        160
+      ],
+      "id": "84a78938-c64f-4a0c-b571-6dfaddd0cd7c",
+      "name": "AI Content Generator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const creative = JSON.parse($json.text);\n\nconst event = $('Normalize Events').first().json;\n\nconst classification = JSON.parse(\n  $('Basic LLM Chain').first().json.text\n);\n\nreturn {\n  json: {\n    ...event,\n\n    category: classification.category,\n\n    instagram_caption: creative.instagram_caption,\n    website_headline: creative.website_headline,\n    website_description: creative.website_description,\n    hashtags: creative.hashtags,\n    creative_text: creative.creative_text,\n    interest_hook: creative.interest_hook,\n\n    image_source: 'eventbrite'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        160
+      ],
+      "id": "af80413e-08ef-43f9-9cbc-4af34988fbc1",
+      "name": "Prepare Creative Content"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#gudpals",
+          "mode": "name"
+        },
+        "message": "={{\n`🎨 Event Content Ready for Approval\n\n📌 ${$json.title}\n📅 ${$json.date}\n⏰ ${$json.time}\n📍 ${$json.venue}, ${$json.city}\n\n🏷️ Category: ${$json.category}\n\n📝 Website Headline:\n${$json.website_headline}\n\n📱 Instagram Caption:\n${$json.instagram_caption}\n\n🖼️ Creative Text:\n${$json.creative_text}\n\n🔗 Source:\n${$json.source_url}\n\nPlease review the generated content and choose Publish or Reject.`\n}}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Accept",
+            "disapproveLabel": "Rejected"
+          }
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        3360,
+        160
+      ],
+      "id": "07a8d526-0255-4ed6-a203-70e30e94bc69",
+      "name": "Send message and wait for response1",
+      "webhookId": "b64d4b40-3472-4746-92be-683250cf1ba5",
+      "credentials": {
+        "slackApi": {
+          "id": "YnMt5WosfHhEZjV8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "88504bfe-9851-4812-b3c0-92b3c7be415e",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3520,
+        160
+      ],
+      "id": "b0ac0a0d-b956-4166-ac27-c4b6c7192d98",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $('Append row in sheet').first().json.event_id }}",
+            "status": "Creative approved"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organiser",
+              "displayName": "organiser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_permalink",
+              "displayName": "instagram_permalink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3808,
+        -32
+      ],
+      "id": "b580d9b9-11ce-4ae9-9811-1f21e24db3ec",
+      "name": "Update row in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $('Append row in sheet').first().json.event_id }}",
+            "status": "Creative  Rejected"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organiser",
+              "displayName": "organiser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_permalink",
+              "displayName": "instagram_permalink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3808,
+        176
+      ],
+      "id": "5d67f63a-d5b0-487d-af13-829aec93c34c",
+      "name": "Update row in sheet3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eb6ea76e-43fb-4d1d-b9b9-98c67cb1a37b",
+              "name": "image_url",
+              "value": "={{ $('Prepare Creative Content').first().json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "37e18723-30f0-4d0f-a479-0996baa6685a",
+              "name": "instagram_caption",
+              "value": "={{ $('Prepare Creative Content').first().json.instagram_caption }}",
+              "type": "string"
+            },
+            {
+              "id": "24b8df38-a1e5-472a-a33b-44882caa079c",
+              "name": "hashtags",
+              "value": "={{ $('Prepare Creative Content').first().json.hashtags.join(' ') }}",
+              "type": "string"
+            },
+            {
+              "id": "f45e5544-3c83-44da-9ab9-50cb21e901c5",
+              "name": "event_id",
+              "value": "={{ $('Append row in sheet').first().json.event_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4016,
+        -32
+      ],
+      "id": "2af984c8-bae0-4f75-81c8-2df2212cc7f5",
+      "name": "Prepare Instagram Post"
+    },
+    {
+      "parameters": {
+        "authentication": "accessToken",
+        "resource": "custom",
+        "endpointPath": "={{ '/' + $json.id }}",
+        "queryParamsJson": "={{\n  {\n    fields: 'status_code,status'\n  }\n}}"
+      },
+      "type": "@rizkifirmansyah/n8n-nodes-instagram-api.instagram",
+      "typeVersion": 1,
+      "position": [
+        4416,
+        -16
+      ],
+      "id": "c519ecb2-b830-44e7-9e3b-651daf64824b",
+      "name": "status-check node.3",
+      "credentials": {
+        "instagramApi": {
+          "id": "hxOmqPvJN6wwNrxd",
+          "name": "Instagram Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "accessToken",
+        "resource": "custom",
+        "httpMethod": "POST",
+        "endpointPath": "/me/media_publish",
+        "queryParamsJson": "={{\n  {\n    creation_id: $json.id\n  }\n}}"
+      },
+      "type": "@rizkifirmansyah/n8n-nodes-instagram-api.instagram",
+      "typeVersion": 1,
+      "position": [
+        4816,
+        -32
+      ],
+      "id": "623f459f-b467-4964-ba1c-96943858884a",
+      "name": "Publish the container2",
+      "credentials": {
+        "instagramApi": {
+          "id": "hxOmqPvJN6wwNrxd",
+          "name": "Instagram Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4608,
+        -336
+      ],
+      "id": "ffad0304-7d9e-4b9f-b4b6-3cdbada3d7cf",
+      "name": "Wait",
+      "webhookId": "4e6fe663-06cb-4719-9fba-cdf659496e3c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5cc64b68-be11-4745-94b7-e68fc40eaf30",
+              "leftValue": "={{ $json.status_code }}",
+              "rightValue": "FINISHED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4608,
+        -16
+      ],
+      "id": "68d6a06a-0b1b-42f0-b1df-7c8681c0700a",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "authentication": "accessToken",
+        "resource": "custom",
+        "httpMethod": "POST",
+        "endpointPath": "/me/media",
+        "queryParamsJson": "={{\n{\n  image_url: $('Normalize Events').first().json.image_url,\n  caption: `${$('Prepare Creative Content').first().json.instagram_caption} ${$('Prepare Creative Content').first().json.hashtags.join(' ')}`\n}\n}}"
+      },
+      "type": "@rizkifirmansyah/n8n-nodes-instagram-api.instagram",
+      "typeVersion": 1,
+      "position": [
+        4208,
+        -32
+      ],
+      "id": "886e594e-71d0-42a6-8b42-62de66dc2a25",
+      "name": "Create Instagram Media Container",
+      "credentials": {
+        "instagramApi": {
+          "id": "hxOmqPvJN6wwNrxd",
+          "name": "Instagram Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ",
+          "mode": "list",
+          "cachedResultName": "Gudpals Content Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A0QVJv1pgCID1396BrOhAtMTd86uqx3o3xRL8-8ymQQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $('Append row in sheet').first().json.event_id }}",
+            "status": "Creative Published"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organiser",
+              "displayName": "organiser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_permalink",
+              "displayName": "instagram_permalink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website_url",
+              "displayName": "website_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5008,
+        -32
+      ],
+      "id": "8dbdb7ed-3c93-4579-816b-82fe7e4b4c5d",
+      "name": "Update row in sheet4",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jvGYq4x70EPSdtmr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d765c1e5-bcf0-4762-a058-4cf8d96a0f24",
+              "name": "id",
+              "value": "={{ $('Append row in sheet').first().json.event_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1cbf0e7a-d8b7-46bd-b982-199004d2d142",
+              "name": "title",
+              "value": "={{ $('Normalize Events').first().json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "6d539449-69f1-45d7-83b4-2ae53a6ecd06",
+              "name": "eventDate",
+              "value": "={{ $('Normalize Events').first().json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "0e06b8e1-9beb-44da-81ec-960e3e156908",
+              "name": "eventTime",
+              "value": "={{ $('Normalize Events').first().json.time }}",
+              "type": "string"
+            },
+            {
+              "id": "b64ea197-61e8-4811-b22e-8ccc5fa7a1aa",
+              "name": "area",
+              "value": "={{ $('Normalize Events').first().json.venue }}",
+              "type": "string"
+            },
+            {
+              "id": "3f3ebc84-aacd-4195-9e5c-bed82226bb4b",
+              "name": "location",
+              "value": "={{ $('Normalize Events').first().json.city }}",
+              "type": "string"
+            },
+            {
+              "id": "30eed27f-e605-4f81-bc5d-a65ef2a04690",
+              "name": "organizer",
+              "value": "={{ {\n  name: $('Normalize Events').first().json.organiser,\n  avatar: '',\n  verified: false\n} }}",
+              "type": "string"
+            },
+            {
+              "id": "011328dc-3f63-4e1d-b79b-4ae84c12fd50",
+              "name": "description",
+              "value": "={{ $('Normalize Events').first().json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "b3d125e2-6278-4d40-bada-4fb0d4a39f72",
+              "name": "sourceUrl",
+              "value": "={{ $('Normalize Events').first().json.source_url }}",
+              "type": "string"
+            },
+            {
+              "id": "236199d5-186d-4340-9210-680246d0554a",
+              "name": "image",
+              "value": "={{ $('Normalize Events').first().json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "64bfac2b-46ee-48c2-8cb4-61d15c6e9710",
+              "name": "=category",
+              "value": "={{\n  {\n    'Meetups & Socials': 'meetups',\n    'Events & Shows': 'events',\n    'Tours & Escapes': 'travel',\n    'Fun Activities': 'activities',\n    'Health & Wellness': 'health',\n    'Stores': 'stores'\n  }[$('Prepare Creative Content').first().json.category]\n}}",
+              "type": "string"
+            },
+            {
+              "id": "eabca5be-182b-4be0-8bb6-1dfdc26d71da",
+              "name": "isDynamicEvent",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "27f64eae-9be1-4395-9fec-693dfd99da0c",
+              "name": "interestHook",
+              "value": "={{ $('Prepare Creative Content').first().json.interest_hook }}",
+              "type": "string"
+            },
+            {
+              "id": "a9c0e0e0-a64e-4428-bef5-c328fe305894",
+              "name": "image",
+              "value": "={{ $('Prepare Creative Content').first().json.image_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3808,
+        464
+      ],
+      "id": "db71111b-1a6f-4c56-9843-926cc88e42fe",
+      "name": "Prepare Website Event"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "nikhil-repo09",
+          "mode": "list",
+          "cachedResultName": "nikhil-repo09",
+          "cachedResultUrl": "https://github.com/nikhil-repo09"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "Gudpals-events",
+          "mode": "list",
+          "cachedResultName": "Gudpals-events",
+          "cachedResultUrl": "https://github.com/nikhil-repo09/Gudpals-events"
+        },
+        "filePath": "=data/events.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "main"
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        4016,
+        464
+      ],
+      "id": "c0f20950-9d19-461b-afc5-2e44eaa8c3e6",
+      "name": "Get a file",
+      "webhookId": "9887ba23-202a-4f60-b4e8-e100b280c0d4",
+      "credentials": {
+        "githubApi": {
+          "id": "TvnDOjHYtYOP72Ge",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const githubData = $input.first().json;\n\n// Decode the existing events.json from GitHub\nconst existingContent = Buffer\n  .from(githubData.content, 'base64')\n  .toString('utf8');\n\nconst existingData = JSON.parse(existingContent);\n\n// Get the newly approved event\nconst newEvent = $('Prepare Website Event').first().json;\n\n// Make sure organizer is an object\nif (typeof newEvent.organizer === 'string') {\n  try {\n    newEvent.organizer = JSON.parse(newEvent.organizer);\n  } catch {\n    newEvent.organizer = {\n      name: newEvent.organizer,\n      avatar: '',\n      verified: false\n    };\n  }\n}\n\n// Convert event time range to start time only\nif (newEvent.eventTime && newEvent.eventTime.includes(' - ')) {\n  newEvent.eventTime = newEvent.eventTime.split(' - ')[0];\n}\n\n// Check if this event already exists\nconst existingIndex = existingData.events.findIndex(\n  event => event.id === newEvent.id\n);\n\nif (existingIndex !== -1) {\n  // Update existing event\n  existingData.events[existingIndex] = {\n    ...existingData.events[existingIndex],\n    ...newEvent\n  };\n} else {\n  // Add new event at the top\n  existingData.events.unshift(newEvent);\n}\n\n// Create final JSON content\nconst updatedContent = JSON.stringify(existingData, null, 2);\n\nreturn [\n  {\n    json: {\n      ...githubData,\n      content: updatedContent\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        464
+      ],
+      "id": "eea4ddd7-b661-47ea-82f5-2bef874a03b3",
+      "name": "Merge Website Event"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "nikhil-repo09",
+          "mode": "list",
+          "cachedResultName": "nikhil-repo09",
+          "cachedResultUrl": "https://github.com/nikhil-repo09"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "Gudpals-events",
+          "mode": "list",
+          "cachedResultName": "Gudpals-events",
+          "cachedResultUrl": "https://github.com/nikhil-repo09/Gudpals-events"
+        },
+        "filePath": "=data/events.json",
+        "fileContent": "={{ $json.content }}",
+        "commitMessage": "Update Gudpals event",
+        "additionalParameters": {
+          "branch": {
+            "branch": "main"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        4496,
+        464
+      ],
+      "id": "446c7272-692c-4136-99f8-b122ae70b886",
+      "name": "Edit a file",
+      "webhookId": "9887ba23-202a-4f60-b4e8-e100b280c0d4",
+      "credentials": {
+        "githubApi": {
+          "id": "TvnDOjHYtYOP72Ge",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Run an Actor and get dataset": [
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "live",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:54:03.703Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:54:25.057Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:54:37.897Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:55:05.486Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 3
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:55:25.966Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 4
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:55:53.565Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 5
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:56:10.367Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 6
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:56:30.002Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 7
+        }
+      },
+      {
+        "json": {
+          "name": "Thursday Meetup",
+          "startDate": "2026-10-08",
+          "endDate": "2026-10-08",
+          "description": null,
+          "venue": "Ethiopian Cultural Centre",
+          "address": "7/50 G Niti Marg",
+          "locality": "New Delhi",
+          "postalCode": "110021",
+          "latitude": "28.5879829",
+          "longitude": "77.1893995",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1193331093%2F1774661455253%2F1%2Foriginal.20260912-140249?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=b56f20729f6375fefb972fa2a33ed63d",
+          "url": "https://www.eventbrite.de/e/thursday-meetup-tickets-2000726439639",
+          "eventId": "2000726439639",
+          "summary": "Coffee, new faces and easy conversations with Travelling Table. Thursdays, 5 PM at Ethiopian Cultural Centre, Chanakyapuri. Free to join.",
+          "status": "live",
+          "listed": true,
+          "startTime": "17:00:00",
+          "endTime": "19:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-08T11:30:00Z",
+          "endUtc": "2026-10-08T13:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Community",
+          "categoryId": null,
+          "subcategory": "County",
+          "subcategoryId": null,
+          "format": "Party",
+          "formatId": "11",
+          "organizerId": "120687577459",
+          "organizerName": "Shaw",
+          "organizerUrl": "https://www.eventbrite.de/o/shaw-120687577459",
+          "organizerDescription": null,
+          "organizerLogo": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1191942297%2F1774661455253%2F1%2Foriginal.20260826-133359?w=512&auto=format%2Ccompress&q=75&sharp=10&s=d7d7e2b85b0087533e9ad83801aa31be",
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": false,
+          "currency": "USD",
+          "priceMin": 0,
+          "priceMax": 0,
+          "ticketAvailability": "on_sale",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.de/e/thursday-meetup-tickets-2000726439639",
+          "scrapedAt": "2026-10-04T07:56:47.089Z",
+          "venueId": "299399694",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": {
+            "policyType": "custom",
+            "isRefundAllowed": true,
+            "validDays": 1
+          }
+        },
+        "pairedItem": {
+          "item": 8
+        }
+      },
+      {
+        "json": {
+          "name": "The Social Pulse Networking Meetup",
+          "startDate": "2026-10-04",
+          "endDate": "2026-10-04",
+          "description": null,
+          "venue": "Blue Tokai Coffee Roasters Origins | Janpath",
+          "address": "No 48",
+          "locality": "New Delhi",
+          "postalCode": "110001",
+          "latitude": "28.626972",
+          "longitude": "77.21977799999999",
+          "image": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194462537%2F2840286743601%2F1%2Foriginal.20260927-171524?crop=focalpoint&fit=crop&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=dd497d239bac9fc4585621e924c4bdb8",
+          "url": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "eventId": "2002388987364",
+          "summary": "Looking to expand your professional network and meet ambitious, like-minded people?",
+          "status": "ended",
+          "listed": true,
+          "startTime": "11:00:00",
+          "endTime": "13:00:00",
+          "timezone": "Asia/Kolkata",
+          "startUtc": "2026-10-04T05:30:00Z",
+          "endUtc": "2026-10-04T07:30:00Z",
+          "country": "IN",
+          "region": "DL",
+          "onlineEvent": false,
+          "category": "Business",
+          "categoryId": null,
+          "subcategory": "Other",
+          "subcategoryId": null,
+          "format": "Networking",
+          "formatId": "10",
+          "organizerId": "120248662411",
+          "organizerName": "Anchal",
+          "organizerUrl": "https://www.eventbrite.co.uk/o/anchal-120248662411",
+          "organizerDescription": null,
+          "organizerLogo": null,
+          "organizerPastEvents": null,
+          "organizerFutureEvents": null,
+          "isFree": true,
+          "currency": "USD",
+          "priceMin": null,
+          "priceMax": null,
+          "ticketAvailability": "sales_ended",
+          "source": "Eventbrite",
+          "sourceUrl": "https://www.eventbrite.co.uk/e/the-social-pulse-networking-meetup-tickets-2002388987364",
+          "scrapedAt": "2026-10-04T07:57:25.595Z",
+          "venueId": "299306347",
+          "venueCapacity": null,
+          "ticketTypes": [],
+          "refundPolicy": null
+        },
+        "pairedItem": {
+          "item": 9
+        }
+      }
+    ],
+    "Basic LLM Chain": [
+      {
+        "json": {
+          "text": "{\n  \"is_senior_event\": false,\n  \"category\": \"Meetups & Socials\",\n  \"reason\": \"Professional networking event not tailored for seniors.\",\n  \"summary\": \"A professional networking meetup at Blue Tokai Coffee Roasters in Delhi, aimed at ambitious professionals seeking to expand their network.\"\n}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "text": "{\n  \"is_senior_event\": false,\n  \"category\": \"Meetups & Socials\",\n  \"reason\": \"General social meetup, no senior focus.\",\n  \"summary\": \"Coffee meetup for new faces and easy conversations at Ethiopian Cultural Centre, free to join, Thursday 5 PM.\"\n}"
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      }
+    ],
+    "AI Content Generator": [
+      {
+        "json": {
+          "text": "{\n  \"instagram_caption\": \"Coffee, conversation, connections ☕️ Join us at Blue Tokai for a networking meetup! #NewDelhi #Networking\",\n  \"website_headline\": \"Connect & Grow at The Social Pulse Networking Meetup\",\n  \"website_description\": \"Join Anchal on October 4th for The Social Pulse Networking Meetup at Blue Tokai Coffee Roasters Origins on Janpath, New Delhi. From 11:00 to 13:00, enjoy a relaxed coffee setting designed to help you expand your professional network and connect with ambitious, like‑minded professionals. Whether you’re a seasoned expert or just starting out, this meetup offers a friendly environment to share ideas, exchange contacts, and build lasting relationships. Grab your spot, bring your enthusiasm, and let the conversation flow over great coffee. See you there!\",\n  \"hashtags\": [\n    \"#Networking\",\n    \"#Meetup\",\n    \"#NewDelhi\",\n    \"#BlueTokai\",\n    \"#ProfessionalGrowth\",\n    \"#SocialPulse\",\n    \"#Anchal\",\n    \"#CoffeeMeetup\"\n  ],\n  \"creative_text\": \"Sip, Share, Connect\",\n  \"interest_hook\": \"Curious how a cup of coffee can spark your next big opportunity?\"\n}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor and get dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor and get dataset": {
+      "main": [
+        [
+          {
+            "node": "Normalize Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Events": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Prepare Event Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Event Approval": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "AI Content Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Content Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Generator": {
+      "main": [
+        [
+          {
+            "node": "Prepare Creative Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Creative Content": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response1": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Prepare Website Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update row in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "status-check node.3": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "status-check node.3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Publish the container2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Create Instagram Media Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media Container": {
+      "main": [
+        [
+          {
+            "node": "status-check node.3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish the container2": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Website Event": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Merge Website Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Website Event": {
+      "main": [
+        [
+          {
+            "node": "Edit a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a8187a05-3627-4f6f-b311-e7688b5cf783",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6578a0dec37172974f804fafdefa23376c2313249fe2828ce9dfb0c059a88b70"
+  },
+  "nodeGroups": [],
+  "id": "16YmjT7ssjczJ2Wm",
+  "tags": []
+}
